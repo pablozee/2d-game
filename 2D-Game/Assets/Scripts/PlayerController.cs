@@ -48,14 +48,13 @@ public class PlayerController : MonoBehaviour
 
         if (movementInput < 0 && !isWalkingLeft)
         {
-            Vector3 flippedX = transform.localScale;
-            flippedX.x = -flippedX.x;
-            transform.localScale = flippedX;
+            FlipX();
             isWalkingLeft = true;
         }
 
-        if (movementInput > 0)
+        if (movementInput > 0 && isWalkingLeft)
         {
+            FlipX();
             isWalkingLeft = false;
         }
 
@@ -94,5 +93,12 @@ public class PlayerController : MonoBehaviour
         feetPos.y -= col.bounds.extents.y;
 
         return Physics2D.OverlapCircle(feetPos, .2f, ground);
+    }
+
+    void FlipX()
+    {
+        Vector3 flippedX = transform.localScale;
+        flippedX.x = -flippedX.x;
+        transform.localScale = flippedX;
     }
 }
