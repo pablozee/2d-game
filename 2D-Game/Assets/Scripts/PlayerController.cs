@@ -10,12 +10,17 @@ public class PlayerController : MonoBehaviour
     private PlayerControls playerControls;
     private Rigidbody2D rb;
     private Collider2D col;
+    private Animator anim;
+    private SpriteRenderer renderer;
+    private bool isWalkingLeft = false;
 
     private void Awake()
     {
         playerControls = new PlayerControls();
         rb = GetComponent<Rigidbody2D>();
         col = GetComponent<Collider2D>();
+        anim = GetComponent<Animator>();
+        renderer = GetComponent<SpriteRenderer>();
     }
 
     private void OnEnable()
@@ -41,6 +46,24 @@ public class PlayerController : MonoBehaviour
 
         float movementInput = playerControls.Land.Move.ReadValue<float>();
 
+        if (movementInput < 0 && !isWalkingLeft)
+        {
+            Vector3 flippedX = transform.localScale;
+            flippedX.x = -flippedX.x;
+            transform.localScale = flippedX;
+            isWalkingLeft = true;
+        }
+
+        if (movementInput > 0)
+        {
+            isWalkingLeft = false;
+        }
+
+        if (movementInput != 0)
+        {
+            anim.SetFloat("Speed", movementInput);
+        }
+
         // Move the player
         Vector3 currentPosition = transform.position;
         currentPosition.x += movementInput * speed * Time.deltaTime;
@@ -53,6 +76,7 @@ public class PlayerController : MonoBehaviour
         {
             Debug.Log("Jumping");
             rb.AddForce(new Vector2(0, jumpSpeed), ForceMode2D.Impulse);
+            anim.SetTrigger("Jump");
         }
     }
 
