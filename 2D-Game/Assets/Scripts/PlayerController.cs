@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
-    [SerializeField] private float speed, jumpSpeed;
+    [SerializeField] private float speed, jumpSpeed, boostSpeed, boostForceMultiplier, boostForceMax;
     [SerializeField] private LayerMask ground;
 
     private PlayerControls playerControls;
@@ -13,6 +13,11 @@ public class PlayerController : MonoBehaviour
     private Animator anim;
     private SpriteRenderer renderer;
     private bool isWalkingLeft = false;
+    private bool boostConfirmed = false;
+    private float boostForce = 0f;
+    private Vector2 boostOrigin;
+    private Camera cam;
+    private bool performBoost = false;
 
     private void Awake()
     {
@@ -21,6 +26,7 @@ public class PlayerController : MonoBehaviour
         col = GetComponent<Collider2D>();
         anim = GetComponent<Animator>();
         renderer = GetComponent<SpriteRenderer>();
+        cam = Camera.main;
     }
 
     private void OnEnable()
@@ -37,13 +43,32 @@ public class PlayerController : MonoBehaviour
     void Start()
     {
         playerControls.Land.Jump.performed += _ => Jump();
+        playerControls.Land.BoostConfirm.performed += BoostConfirmPerformed;
+        playerControls.Land.BoostConfirm.canceled += BoostConfirmCancelled; ;
+    }
+
+    private void BoostConfirmCancelled(UnityEngine.InputSystem.InputAction.CallbackContext obj)
+    {
+        boostConfirmed = false;
+        boostOrigin = playerControls.Land.CursorPosition.ReadValue<Vector2>();
+        performBoost = true;
+    }
+
+    private void BoostConfirmPerformed(UnityEngine.InputSystem.InputAction.CallbackContext obj)
+    {
+        boostConfirmed = true;
+        Debug.Log("Boost Confirmed");
     }
 
     // Update is called once per frame
     void Update()
     {
-        // Read the movement value
+        if (boostConfirmed == true)
+        {
+            boostForce += Time.deltaTime * boostForceMultiplier;
+        }
 
+        // Read the movement value
         float movementInput = playerControls.Land.Move.ReadValue<float>();
 
         if (movementInput < 0 && !isWalkingLeft)
@@ -67,6 +92,25 @@ public class PlayerController : MonoBehaviour
         Vector3 currentPosition = transform.position;
         currentPosition.x += movementInput * speed * Time.deltaTime;
         transform.position = currentPosition;
+    }
+
+    private void FixedUpdate()
+    {
+        if (performBoost)
+        {
+            Debug.Log("Performing Boost");
+            Vector3 boostOrigin3D = new Vector3(boostOrigin.x, boostOrigin.y, 0f);
+            Vector3 boostOriginWorld = cam.ScreenToWorldPoint(boostOrigin3D);
+            Vector3 forceDirection3D = (transform.position - boostOriginWorld).normalized;
+            Vector3 forceDirection2D = new Vector2(forceDirection3D.x, forceDirection3D.y);
+            Debug.Log(forceDirection2D);
+            Debug.Log("Boost Force " + boostForce);
+            Debug.Log("Boost Speed " + boostSpeed);
+            rb.AddForce(forceDirection2D * Mathf.Min(boostForce, boostForceMax) * boostSpeed, ForceMode2D.Impulse);
+
+            performBoost = false;
+            boostForce = 0f;
+        }
     }
 
     private void Jump()
